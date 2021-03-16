@@ -2,7 +2,7 @@
 .SUFFIXES: .c .asm .o
 
 CC = i686-elf-gcc
-CFLAGS = -ffreestanding -Wall -Wextra -O2
+CFLAGS = -ffreestanding -Wall -Wextra -O2 -std=gnu11
 NASM = nasm
 
 OBJS =\
