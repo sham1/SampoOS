@@ -67,15 +67,15 @@ _start:
 	mov gs, ax
 	mov ss, ax
 
-	pop ebx
-	pop eax
-
 	; TODO: Initialize everything properly
 	call _init
 
-	sub esp, 8 		; Align so after arguments we are at 16-byte boundary.
-	push ebx
+	pop ebx
+	pop eax
+
+	sub esp, 8 		; Align so we are at 16-byte boundary.
 	push eax
+	push ebx
 extern kickstart_main
 	call kickstart_main
 
