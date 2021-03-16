@@ -2,7 +2,7 @@
 .SUFFIXES: .c .asm .o
 
 CC = i686-elf-gcc
-CFLAGS = -ffreestanding -Wall -Wextra -O2 -std=gnu11
+CFLAGS = -ffreestanding -Wall -Wextra -O2 -std=gnu11 -g
 NASM = nasm
 
 OBJS =\
@@ -29,7 +29,7 @@ crtend.o:
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 .asm.o:
-	$(NASM) -felf32 $< -o $@
+	$(NASM) -felf32 -F dwarf $< -o $@
 
 clean:
 	rm -f kickstart.bin *.o
