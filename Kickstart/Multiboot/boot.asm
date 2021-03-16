@@ -73,6 +73,12 @@ _start:
 	; TODO: Initialize everything properly
 	call _init
 
+	sub esp, 8 		; Align so after arguments we are at 16-byte boundary.
+	push ebx
+	push eax
+extern kickstart_main
+	call kickstart_main
+
 	cli
 .hang:
 	hlt
