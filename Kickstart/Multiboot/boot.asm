@@ -53,6 +53,23 @@ stack_top:
 _start:
 	mov esp, stack_top
 
+	push eax
+	push ebx
+
+	lgdt [gdt_entry]
+	; We have now set the GDT. Reload segments.
+	jmp 0x08:.reload_segs
+.reload_segs:
+	mov ax, 0x10 		; This is the data segment
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
+
+	pop ebx
+	pop eax
+
 	; TODO: Initialize everything properly
 	call _init
 
@@ -61,3 +78,13 @@ _start:
 	hlt
 	jmp .hang
 .end:
+
+section .data
+gdt:
+	dq 0 ; Null segment
+	dq 0xCF98000000FFFF 	; Kernel code segment
+	dq 0xCF92000000FFFF 	; Kernel data segment
+gdt_end:
+gdt_entry:
+	dw (gdt_end - gdt)
+	dd gdt
