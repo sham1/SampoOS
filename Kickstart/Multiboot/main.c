@@ -100,6 +100,15 @@ kickstart_main(uint32_t addr, uint32_t magic)
 				      (uint32_t)(fb_tag->common.framebuffer_addr >> 32),
 				      (uint32_t)(fb_tag->common.framebuffer_addr & 0xFFFFFFFF));
 		}
+		else if (tag->type == MULTIBOOT_TAG_TYPE_MODULE)
+		{
+			serial_write("Has module\n");
+
+			struct multiboot_tag_module *mod = (struct multiboot_tag_module *) tag;
+			serial_printf("\tLocation - 0x%x\n", mod->mod_start);
+			serial_printf("\tLength - 0x%x\n", mod->mod_end - mod->mod_start);
+			serial_printf("\tCommand line - %s\n", mod->cmdline);
+		}
 	}
 
 	uint64_t free_start_addr = (((uint64_t)(uintptr_t)&kickstart_end) + 0x0FFF) & ~0x0FFF;
