@@ -64,12 +64,29 @@ itoa(char *buffer, int base, int num)
 		d = -num;
 	}
 
+	int printed_chars = 0;
+	bool should_quit = false;
 	do
 	{
 		int rem = d % base;
 		*p++ = (rem < 10) ? rem + '0' : rem + 'a' - 10;
+		++printed_chars;
+		d /= base;
+
+		switch (base)
+		{
+		case 10:
+			should_quit = d == 0;
+			break;
+		case 16:
+			should_quit = printed_chars == 8;
+			break;
+		default:
+			should_quit = true;
+			break;
+		}
 	}
-	while (d /= base);
+	while (!should_quit);
 	*p = '\0';
 
 	char *p1 = buffer;
