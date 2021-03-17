@@ -4,6 +4,8 @@
 #include "string.h"
 #include "serial.h"
 
+#include "SampoOS/Kernel/bootinfo.h"
+
 extern uint32_t kickstart_end;
 
 void
