@@ -33,12 +33,40 @@ kickstart_main(uint32_t addr, uint32_t magic)
 
 			for (multiboot_memory_map_t *entry =
 				     (multiboot_memory_map_t *) mmap_tag->entries;
-			     (void *) entry < (void *) (mmap_tag + mmap_tag->size);
+			     (uintptr_t) entry < ((uintptr_t)(mmap_tag) + mmap_tag->size);
 			     entry = (multiboot_memory_map_t *)
 				     (((uintptr_t)entry) + mmap_tag->entry_size))
 			{
+				const char *type;
+				switch (entry->type)
+				{
+				case MULTIBOOT_MEMORY_AVAILABLE:
+					type = "Available";
+					break;
+				case MULTIBOOT_MEMORY_RESERVED:
+					type = "Reserved";
+					break;
+				case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE:
+					type = "ACPI Reclaimable";
+					break;
+				case MULTIBOOT_MEMORY_NVS:
+					type = "ACPI NVS Memory";
+					break;
+				case MULTIBOOT_MEMORY_BADRAM:
+					type = "Bad RAM";
+					break;
+				default:
+					type = "Unknown";
+					break;
+				}
 				// TODO: Parse, print and store
 				serial_write("\tGot Entry\n");
+				serial_printf("\t\tAddr: 0x%x%x - Length: 0x%x%x - Type: %s\n",
+					      (uint32_t)(entry->addr >> 32),
+					      (uint32_t)(entry->addr & 0xFFFFFFFF),
+					      (uint32_t)(entry->len >> 32),
+					      (uint32_t)(entry->len & 0xFFFFFFFF),
+					      type);
 			}
 		}
 	}
