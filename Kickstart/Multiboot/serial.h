@@ -7,3 +7,5 @@ bool serial_init(void);
 void serial_putchar(char a);
 
 void serial_write(const char *str);
+
+void serial_printf(const char *restrict format, ...);
