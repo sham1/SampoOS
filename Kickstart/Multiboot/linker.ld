@@ -30,4 +30,7 @@ SECTIONS
 		*(COMMON)
 		*(.bss)
 	}
+
+	/* Store the end of kickstart to figure out its length */
+	kickstart_end = .;
 }

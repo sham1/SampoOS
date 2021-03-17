@@ -4,6 +4,8 @@
 #include "string.h"
 #include "serial.h"
 
+extern uint32_t kickstart_end;
+
 void
 kickstart_main(uint32_t addr, uint32_t magic)
 {
@@ -99,6 +101,11 @@ kickstart_main(uint32_t addr, uint32_t magic)
 				      (uint32_t)(fb_tag->common.framebuffer_addr & 0xFFFFFFFF));
 		}
 	}
+
+	uint64_t free_start_addr = (((uint64_t)(uintptr_t)&kickstart_end) + 0x0FFF) & ~0x0FFF;
+	serial_printf("First free page after Kickstart: 0x%x%x\n",
+		      (uint32_t)(free_start_addr >> 32),
+		      (uint32_t)(free_start_addr & 0xFFFFFFFF));
 
 	// TODO: Parse multiboot headers.
 }
