@@ -69,6 +69,35 @@ kickstart_main(uint32_t addr, uint32_t magic)
 					      type);
 			}
 		}
+		else if (tag->type == MULTIBOOT_TAG_TYPE_FRAMEBUFFER)
+		{
+			serial_write("Has framebuffer\n");
+			struct multiboot_tag_framebuffer *fb_tag = (struct multiboot_tag_framebuffer *) tag;
+
+			switch (fb_tag->common.framebuffer_type)
+			{
+			case MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED:
+				serial_write("\tType - indexed color\n");
+				break;
+			case MULTIBOOT_FRAMEBUFFER_TYPE_RGB:
+				serial_write("\tType - RGB color\n");
+				break;
+			case MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT:
+				serial_write("\tType - Text mode\n");
+				break;
+			default:
+				serial_write("\tType - unknown\n");
+				break;
+			}
+
+			serial_printf("\tWidth - %u\n", fb_tag->common.framebuffer_width);
+			serial_printf("\tHeight - %u\n", fb_tag->common.framebuffer_height);
+			serial_printf("\tBits per pixel - %u\n", fb_tag->common.framebuffer_bpp);
+			serial_printf("\tPitch - %u\n", fb_tag->common.framebuffer_pitch);
+			serial_printf("\tAddress - 0x%x%x\n",
+				      (uint32_t)(fb_tag->common.framebuffer_addr >> 32),
+				      (uint32_t)(fb_tag->common.framebuffer_addr & 0xFFFFFFFF));
+		}
 	}
 
 	// TODO: Parse multiboot headers.
