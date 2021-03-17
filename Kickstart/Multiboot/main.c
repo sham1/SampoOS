@@ -61,11 +61,14 @@ kickstart_main(uint32_t addr, uint32_t magic)
 					type = "Unknown";
 					break;
 				}
+				uint64_t end_addr = entry->addr + entry->len;
 				// TODO: Parse, print and store
 				serial_write("\tGot Entry\n");
-				serial_printf("\t\tAddr: 0x%x%x - Length: 0x%x%x - Type: %s\n",
+				serial_printf("\t\tAddr: 0x%x%x - End: 0x%x%x - Length: 0x%x%x - Type: %s\n",
 					      (uint32_t)(entry->addr >> 32),
 					      (uint32_t)(entry->addr & 0xFFFFFFFF),
+					      (uint32_t)(end_addr >> 32),
+					      (uint32_t)(end_addr & 0xFFFFFFFF),
 					      (uint32_t)(entry->len >> 32),
 					      (uint32_t)(entry->len & 0xFFFFFFFF),
 					      type);
