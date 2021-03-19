@@ -11,6 +11,8 @@ extern uint32_t kickstart_end;
 size_t memory_region_count = 0;
 struct sampo_bootinfo_memory_region *memory_regions;
 
+void *kernel_elf_location = NULL;
+
 void
 kickstart_main(uint32_t addr, uint32_t magic)
 {
@@ -32,6 +34,8 @@ kickstart_main(uint32_t addr, uint32_t magic)
 		      (uint32_t)(free_start_addr & 0xFFFFFFFF));
 
 	memory_regions = (struct sampo_bootinfo_memory_region *)(uintptr_t) free_start_addr;
+
+	bool found_kernel = false;
 
 	for (struct multiboot_tag *tag = (struct multiboot_tag *) (addr + 8);
 	     tag->type != MULTIBOOT_TAG_TYPE_END;
@@ -143,7 +147,21 @@ kickstart_main(uint32_t addr, uint32_t magic)
 			serial_printf("\tLocation - 0x%x\n", mod->mod_start);
 			serial_printf("\tLength - 0x%x\n", mod->mod_end - mod->mod_start);
 			serial_printf("\tCommand line - %s\n", mod->cmdline);
+
+			// TODO: Maybe support i686 kernel
+			if (strcmp(mod->cmdline, "sampo-x86_64.bin") == 0)
+			{
+				serial_write("\tModule was kernel!\n");
+				kernel_elf_location = (void *)(uintptr_t)mod->mod_start;
+				found_kernel = true;
+			}
 		}
+	}
+
+	if (!found_kernel)
+	{
+		serial_write("Bootloader could not load the kernel. Halting!\n");
+		return;
 	}
 
 	if (memory_region_count == 0)
