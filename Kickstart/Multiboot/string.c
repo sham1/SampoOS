@@ -78,3 +78,38 @@ strlen(const char *str)
 	for (end = str; *end; ++end);
 	return end - str;
 }
+
+int
+strcmp(const char *a, const char *b)
+{
+        while (*a == *b++)
+	{
+		if (*a++ == '\0')
+		{
+			return 0;
+		}
+	}
+
+	return (*(unsigned char *)a) - (*(unsigned char *)--b);
+}
+
+int
+strncmp(const char *a, const char *b, size_t count)
+{
+	for (size_t i = 0; i < count; ++i)
+	{
+		if (a[i] == b[i])
+		{
+			if (*a == '\0')
+			{
+				break;
+			}
+		}
+		else
+		{
+			return (((unsigned char *)a)[i]) - (((unsigned char *)b)[i]);
+		}
+	}
+
+	return 0;
+}
