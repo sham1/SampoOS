@@ -2,7 +2,7 @@ ARCHDIR = Arch/$(ARCH)
 
 CC = $(ARCH)-elf-gcc
 CFLAGS = -ffreestanding -Wall -Wextra -std=gnu11 -O2 $(ARCH_CFLAGS)
-LDFLAGS = -nostdlib -T $(ARCHDIR)/linker.ld
+LDFLAGS = -nostdlib -T $(ARCHDIR)/linker.ld $(ARCH_LDFLAGS)
 LIBS = -lgcc
 
 OBJS =\
