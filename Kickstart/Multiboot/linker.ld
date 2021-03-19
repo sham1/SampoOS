@@ -5,6 +5,8 @@ SECTIONS
 	/* This kickstart begins at 1MiB */
 	. = 1M;
 
+	kickstart_start = .;
+
 	/* First let's prefer the multiboot header and .text-section */
 	.text BLOCK(4K) : ALIGN(4K)
 	{

@@ -6,7 +6,8 @@
 
 #include "SampoOS/Kernel/bootinfo.h"
 
-extern uint32_t kickstart_end;
+extern uint8_t kickstart_start[];
+extern uint8_t kickstart_end[];
 
 size_t memory_region_count = 0;
 struct sampo_bootinfo_memory_region *memory_regions;
@@ -28,7 +29,7 @@ kickstart_main(uint32_t addr, uint32_t magic)
 
 	serial_write("Multiboot magic successful\n");
 
-	uint64_t free_start_addr = (((uint64_t)(uintptr_t)&kickstart_end) + 0x0FFF) & ~0x0FFF;
+	uint64_t free_start_addr = (((uint64_t)(uintptr_t)kickstart_end) + 0x0FFF) & ~0x0FFF;
 	serial_printf("First free page after Kickstart: 0x%x%x\n",
 		      (uint32_t)(free_start_addr >> 32),
 		      (uint32_t)(free_start_addr & 0xFFFFFFFF));
