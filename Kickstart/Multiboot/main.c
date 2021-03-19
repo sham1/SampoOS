@@ -14,8 +14,6 @@ struct sampo_bootinfo_memory_region *memory_regions;
 void
 kickstart_main(uint32_t addr, uint32_t magic)
 {
-	(void) addr;
-
 	if (magic != MULTIBOOT2_BOOTLOADER_MAGIC)
 	{
 		return;
