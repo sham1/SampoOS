@@ -4,15 +4,16 @@
 #include "string.h"
 #include "serial.h"
 
-#include "SampoOS/Kernel/bootinfo.h"
+#include "pmm.h"
 
 extern uint8_t kickstart_start[];
 extern uint8_t kickstart_end[];
 
-size_t memory_region_count = 0;
-struct sampo_bootinfo_memory_region *memory_regions;
+extern size_t memory_region_count;
+extern struct sampo_bootinfo_memory_region *memory_regions;
 
 void *kernel_elf_location = NULL;
+void *kernel_elf_end = NULL;
 
 void
 kickstart_main(uint32_t addr, uint32_t magic)
@@ -75,40 +76,7 @@ kickstart_main(uint32_t addr, uint32_t magic)
 				uint64_t start_addr = entry->addr;
 				uint64_t end_addr = entry->addr + entry->len;
 
-				// Round appropriately to proper page boundaries.
-				if ((start_addr & 0x0FFF) != 0x0000)
-				{
-					if (region_type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_AVAILABLE)
-					{
-						// Round "free memory" upwards.
-						start_addr = (start_addr + 0x0FFF) & ~0xFFF;
-					}
-					else if (region_type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RESERVED)
-					{
-						// Round "reserved" memory downawards.
-						start_addr &= ~0x0FFF;
-					}
-				}
-
-				if ((end_addr & 0x0FFF) != 0x0000)
-				{
-					if (region_type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_AVAILABLE)
-					{
-						// Round "free memory" downwards.
-						end_addr &= ~0x0FFF;
-					}
-					else if (region_type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RESERVED)
-					{
-						// Round "reserved" memory upwards.
-						end_addr = (end_addr + 0x0FFF) & ~0xFFF;
-					}
-				}
-
-				memory_regions[memory_region_count].addr_start = start_addr;
-				memory_regions[memory_region_count].addr_end = end_addr;
-				memory_regions[memory_region_count].type = region_type;
-
-				++memory_region_count;
+				pmm_add_region(region_type, start_addr, end_addr);
 			}
 		}
 		else if (tag->type == MULTIBOOT_TAG_TYPE_FRAMEBUFFER)
@@ -154,6 +122,7 @@ kickstart_main(uint32_t addr, uint32_t magic)
 			{
 				serial_write("\tModule was kernel!\n");
 				kernel_elf_location = (void *)(uintptr_t)mod->mod_start;
+				kernel_elf_end = (void *)(uintptr_t)mod->mod_end;
 				found_kernel = true;
 			}
 		}
@@ -170,6 +139,13 @@ kickstart_main(uint32_t addr, uint32_t magic)
 		serial_write("Got no memory regions from Multiboot. Halting!\n");
 		return;
 	}
+
+	// Reserve Kickstart's memory in the physical memory manager.
+	pmm_reserve_memory_region((uintptr_t)kickstart_start, (uintptr_t)kickstart_end);
+	// Also reserve the kernel ELF module region.
+	pmm_reserve_memory_region((uintptr_t)kernel_elf_location, (uintptr_t)kernel_elf_end);
+	// And reserve the PMM's memory map structure.
+	pmm_reserve_memory_region((uintptr_t)memory_regions, ((uintptr_t)memory_regions) + 0x2000);
 
 	serial_printf("Parsed memory map (rounded to nearest page boundaries):\n");
 	for (size_t i = 0; i < memory_region_count; ++i)

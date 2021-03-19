@@ -9,7 +9,8 @@ OBJS =\
 	boot.o \
 	main.o \
 	string.o \
-	serial.o
+	serial.o \
+	pmm.o
 
 all: kickstart.bin
 
