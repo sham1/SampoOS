@@ -8,6 +8,9 @@
 
 extern uint32_t kickstart_end;
 
+size_t memory_region_count = 0;
+struct sampo_bootinfo_memory_region *memory_regions;
+
 void
 kickstart_main(uint32_t addr, uint32_t magic)
 {
@@ -25,6 +28,13 @@ kickstart_main(uint32_t addr, uint32_t magic)
 
 	serial_write("Multiboot magic successful\n");
 
+	uint64_t free_start_addr = (((uint64_t)(uintptr_t)&kickstart_end) + 0x0FFF) & ~0x0FFF;
+	serial_printf("First free page after Kickstart: 0x%x%x\n",
+		      (uint32_t)(free_start_addr >> 32),
+		      (uint32_t)(free_start_addr & 0xFFFFFFFF));
+
+	memory_regions = (struct sampo_bootinfo_memory_region *)(uintptr_t) free_start_addr;
+
 	for (struct multiboot_tag *tag = (struct multiboot_tag *) (addr + 8);
 	     tag->type != MULTIBOOT_TAG_TYPE_END;
 	     tag = (struct multiboot_tag *)(((uintptr_t)tag) + ((tag->size + 7) & ~7)))
@@ -33,47 +43,69 @@ kickstart_main(uint32_t addr, uint32_t magic)
 		{
 			struct multiboot_tag_mmap *mmap_tag =
 				(struct multiboot_tag_mmap *) tag;
-			serial_write("Found memory map\n");
-
 			for (multiboot_memory_map_t *entry =
 				     (multiboot_memory_map_t *) mmap_tag->entries;
 			     (uintptr_t) entry < ((uintptr_t)(mmap_tag) + mmap_tag->size);
 			     entry = (multiboot_memory_map_t *)
 				     (((uintptr_t)entry) + mmap_tag->entry_size))
 			{
-				const char *type;
+				enum sampo_bootinfo_memory_region_type region_type;
 				switch (entry->type)
 				{
 				case MULTIBOOT_MEMORY_AVAILABLE:
-					type = "Available";
-					break;
-				case MULTIBOOT_MEMORY_RESERVED:
-					type = "Reserved";
+					region_type = SAMPO_BOOTINFO_MEMORY_REGION_TYPE_AVAILABLE;
 					break;
 				case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE:
-					type = "ACPI Reclaimable";
+					region_type = SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RECLAIMABLE;
 					break;
 				case MULTIBOOT_MEMORY_NVS:
-					type = "ACPI NVS Memory";
+					region_type = SAMPO_BOOTINFO_MEMORY_REGION_TYPE_NVS;
 					break;
 				case MULTIBOOT_MEMORY_BADRAM:
-					type = "Bad RAM";
+					region_type = SAMPO_BOOTINFO_MEMORY_REGION_TYPE_BAD_MEM;
 					break;
+				case MULTIBOOT_MEMORY_RESERVED:
 				default:
-					type = "Unknown";
+					region_type = SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RESERVED;
 					break;
 				}
+				uint64_t start_addr = entry->addr;
 				uint64_t end_addr = entry->addr + entry->len;
-				// TODO: Parse, print and store
-				serial_write("\tGot Entry\n");
-				serial_printf("\t\tAddr: 0x%x%x - End: 0x%x%x - Length: 0x%x%x - Type: %s\n",
-					      (uint32_t)(entry->addr >> 32),
-					      (uint32_t)(entry->addr & 0xFFFFFFFF),
-					      (uint32_t)(end_addr >> 32),
-					      (uint32_t)(end_addr & 0xFFFFFFFF),
-					      (uint32_t)(entry->len >> 32),
-					      (uint32_t)(entry->len & 0xFFFFFFFF),
-					      type);
+
+				// Round appropriately to proper page boundaries.
+				if ((start_addr & 0x0FFF) != 0x0000)
+				{
+					if (region_type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_AVAILABLE)
+					{
+						// Round "free memory" upwards.
+						start_addr = (start_addr + 0x0FFF) & ~0xFFF;
+					}
+					else if (region_type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RESERVED)
+					{
+						// Round "reserved" memory downawards.
+						start_addr &= ~0x0FFF;
+					}
+				}
+
+				if ((end_addr & 0x0FFF) != 0x0000)
+				{
+					if (region_type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_AVAILABLE)
+					{
+						// Round "free memory" downwards.
+						end_addr &= ~0x0FFF;
+					}
+					else if (region_type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RESERVED)
+					{
+						// Round "reserved" memory upwards.
+						end_addr = (end_addr + 0x0FFF) & ~0xFFF;
+					}
+				}
+
+				memory_regions[memory_region_count].addr_start = start_addr;
+				memory_regions[memory_region_count].addr_end = end_addr;
+				memory_regions[memory_region_count].type = region_type;
+
+				++memory_region_count;
 			}
 		}
 		else if (tag->type == MULTIBOOT_TAG_TYPE_FRAMEBUFFER)
@@ -116,10 +148,25 @@ kickstart_main(uint32_t addr, uint32_t magic)
 		}
 	}
 
-	uint64_t free_start_addr = (((uint64_t)(uintptr_t)&kickstart_end) + 0x0FFF) & ~0x0FFF;
-	serial_printf("First free page after Kickstart: 0x%x%x\n",
-		      (uint32_t)(free_start_addr >> 32),
-		      (uint32_t)(free_start_addr & 0xFFFFFFFF));
+	if (memory_region_count == 0)
+	{
+		serial_write("Got no memory regions from Multiboot. Halting!\n");
+		return;
+	}
+
+	serial_printf("Parsed memory map (rounded to nearest page boundaries):\n");
+	for (size_t i = 0; i < memory_region_count; ++i)
+	{
+		serial_printf("\tRegion start - 0x%x%x\n",
+			      (uint32_t)(memory_regions[i].addr_start >> 32),
+			      (uint32_t)(memory_regions[i].addr_start & 0xFFFFFFFF));
+		serial_printf("\tRegion end   - 0x%x%x\n",
+			      (uint32_t)(memory_regions[i].addr_end >> 32),
+			      (uint32_t)(memory_regions[i].addr_end & 0xFFFFFFFF));
+		serial_printf("\tRegion type  - %d\n",
+			      memory_regions[i].type);
+		serial_putchar('\n');
+	}
 
 	// TODO: Parse multiboot headers.
 }
