@@ -39,6 +39,8 @@ static struct elf_header
 	size_t prog_header_len;
 } header;
 
+extern uint64_t program_entry_point;
+
 static inline uint16_t
 elf_read_u16(const uint8_t *bytes)
 {
@@ -315,6 +317,8 @@ elf_expand(void)
 #undef PF_W
 #undef PF_X
 #undef PT_LOAD
+
+	program_entry_point = header.entry_point;
 
 	return true;
 }

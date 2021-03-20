@@ -8,11 +8,15 @@
 #include "pager.h"
 #include <cpuid.h>
 
+extern void enter_64bit_kernel(void);
+
 extern uint8_t kickstart_start[];
 extern uint8_t kickstart_end[];
 
 void *kernel_elf_location = NULL;
 void *kernel_elf_end = NULL;
+
+uint64_t program_entry_point;
 
 static bool has_longmode(void);
 
@@ -185,6 +189,11 @@ kickstart_main(uint32_t addr, uint32_t magic)
 		serial_printf("\tRegion type  - %d\n",
 			      memory_regions[i].type);
 		serial_putchar('\n');
+	}
+
+	if (elf_get_arch() == ELF_ARCH_AMD64)
+	{
+		enter_64bit_kernel();
 	}
 }
 

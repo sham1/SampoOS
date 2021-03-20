@@ -12,7 +12,8 @@ OBJS =\
 	serial.o \
 	pmm.o \
 	elf.o \
-	pager.o
+	pager.o \
+	enter_64bit.o
 
 all: kickstart.bin
 
