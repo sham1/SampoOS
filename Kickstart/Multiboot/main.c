@@ -167,6 +167,12 @@ kickstart_main(uint32_t addr, uint32_t magic)
 		return;
 	}
 
+        if (!elf_expand())
+	{
+		serial_write("Could not load kernel segments! Halting!\n");
+		return;
+	}
+
 	serial_printf("Parsed memory map (rounded to nearest page boundaries):\n");
 	for (size_t i = 0; i < memory_region_count; ++i)
 	{
@@ -180,8 +186,6 @@ kickstart_main(uint32_t addr, uint32_t magic)
 			      memory_regions[i].type);
 		serial_putchar('\n');
 	}
-
-	// TODO: Parse multiboot headers.
 }
 
 static bool

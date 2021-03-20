@@ -2,6 +2,9 @@
 #include "util.h"
 #include "serial.h"
 #include <stddef.h>
+#include "pager.h"
+#include "pmm.h"
+#include "string.h"
 
 #define ET_EXEC 2
 
@@ -218,4 +221,100 @@ enum elf_arch
 elf_get_arch(void)
 {
 	return header.arch;
+}
+
+bool
+elf_expand(void)
+{
+#define PT_LOAD 1
+#define PF_X 0x1 // Executable segment
+#define PF_W 0x2 // Writable segment
+#define PF_R 0x4 // Readable segment
+
+	uintptr_t prog_header_base = (uintptr_t)((uint64_t)(uintptr_t)header.base_ptr + header.prog_header_offset);
+
+	if (header.arch == ELF_ARCH_X86)
+	{
+	}
+	else
+	{
+		for (size_t i = 0; i < header.prog_header_count; ++i)
+		{
+			uint8_t *prog_header = (void *)(prog_header_base + header.prog_header_len * i);
+			size_t offset = 0;
+
+			// First we read the type of the segment. If it's not loadable, just ignore it.
+			if (elf_read_word(prog_header, &offset) != PT_LOAD)
+			{
+				continue;
+			}
+
+			// Next we have the flags.
+			uint32_t flags = elf_read_word(prog_header, &offset);
+			enum page_perm segment_perms = 0;
+			if ((flags & PF_R) != 0) {
+				segment_perms |= PAGE_PERM_READ;
+			}
+
+			if ((flags & PF_W) != 0) {
+				segment_perms |= PAGE_PERM_WRITE;
+			}
+
+			if ((flags & PF_X) != 0) {
+				segment_perms |= PAGE_PERM_EXEC;
+			}
+
+			// Now comes the file offset of the segment (how far into the file it is.)
+			uint64_t f_off = elf_read_off(prog_header, &offset);
+			// And here's the virtual address of this segment.
+			uint64_t vaddr = elf_read_addr(prog_header, &offset);
+			// We don't care about the physical address.
+			elf_read_addr(prog_header, &offset);
+			// Now comes the size of the segment within the file
+			uint64_t file_len = elf_read_u64(&prog_header[offset]);
+			offset += 8;
+			// And here is the length the segment ought to have in memory.
+			uint64_t mem_len = elf_read_u64(&prog_header[offset]);
+			offset += 8;
+
+			// We don't care about the alignment since we know that it's going to be page-aligned.
+			// So now we can allocate pages for our segment.
+			serial_printf("Segment of length 0x%x%x is going to get mapped to virtual address 0x%x%x\n",
+				      (uint32_t)(mem_len >> 32),
+				      (uint32_t)(mem_len & 0xFFFFFFFF),
+				      (uint32_t)(vaddr >> 32),
+				      (uint32_t)(vaddr & 0xFFFFFFFF));
+
+			bool needs_rounding = false;
+			size_t pages_needed;
+			if ((mem_len & 0x0FFF) != 0) {
+				needs_rounding = true;
+			}
+
+			pages_needed = (size_t)(mem_len >> 12) + needs_rounding ? 1 : 0;
+			void *segment_region = pmm_allocate_region(pages_needed);
+			if (segment_region == NULL)
+			{
+				serial_write("Couldn't allocate segment!\n");
+				return false;
+			}
+
+			memset(segment_region, 0, pages_needed * 0x1000);
+
+			for (size_t i = 0; i < pages_needed; ++i)
+			{
+				map_page((uintptr_t)segment_region, vaddr + i * 0x1000, segment_perms);
+			}
+
+			void *file_segment = (void *)(uintptr_t)((uint64_t)(uintptr_t)header.base_ptr + f_off);
+			memcpy(segment_region, file_segment, file_len);
+		}
+	}
+
+#undef PF_R
+#undef PF_W
+#undef PF_X
+#undef PT_LOAD
+
+	return true;
 }

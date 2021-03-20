@@ -12,3 +12,5 @@ enum elf_arch
 bool elf_initialize(uint8_t *elf_base_ptr);
 
 enum elf_arch elf_get_arch(void);
+
+bool elf_expand(void);
