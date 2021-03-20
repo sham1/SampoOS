@@ -182,6 +182,8 @@ elf_initialize(uint8_t *elf_base_ptr)
 		return false;
 	}
 
+	header.arch = e_machine == EM_386 ? ELF_ARCH_X86 : ELF_ARCH_AMD64;
+
 	// We don't care about the object file format version.
 	elf_read_word(header.base_ptr, &offset);
 
