@@ -3,6 +3,9 @@
 #include <SampoOS/Kernel/bootinfo.h>
 #include <stddef.h>
 
+extern size_t memory_region_count;
+extern struct sampo_bootinfo_memory_region memory_regions[1024];
+
 void pmm_add_region(enum sampo_bootinfo_memory_region_type region_type,
 		    uint64_t start, uint64_t end);
 

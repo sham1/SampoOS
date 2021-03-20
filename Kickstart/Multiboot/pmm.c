@@ -1,9 +1,10 @@
 #include "pmm.h"
 #include "string.h"
 #include <stdbool.h>
+#include "serial.h"
 
 size_t memory_region_count = 0;
-struct sampo_bootinfo_memory_region *memory_regions;
+struct sampo_bootinfo_memory_region memory_regions[1024];
 
 static void pmm_sort_regions(void);
 
@@ -141,6 +142,7 @@ pmm_allocate_region(size_t region_page_count)
 		return NULL;
 	}
 
+	uint64_t len = region_page_count * 0x1000;
 	void *ret = NULL;
 	// We want to search from all over 1MiB available regions a region that is available.
 	for (size_t i = 0; i < memory_region_count; ++i)
@@ -158,7 +160,7 @@ pmm_allocate_region(size_t region_page_count)
 		}
 
 		// Now we shall see if the region is long enough.
-		uint64_t potential_end = potential_region->addr_start + region_page_count * 0x1000;
+		uint64_t potential_end = potential_region->addr_start + len;
 		if (potential_end > potential_region->addr_end)
 		{
 			continue;
@@ -166,7 +168,7 @@ pmm_allocate_region(size_t region_page_count)
 
 		// We have our region. Create the appropriate reserved region.
 		memory_regions[memory_region_count].addr_start = potential_region->addr_start;
-		memory_regions[memory_region_count].addr_end = potential_region->addr_end;
+		memory_regions[memory_region_count].addr_end = potential_end;
 		memory_regions[memory_region_count].type = SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RESERVED;
 
 		++memory_region_count;

@@ -11,9 +11,6 @@
 extern uint8_t kickstart_start[];
 extern uint8_t kickstart_end[];
 
-extern size_t memory_region_count;
-extern struct sampo_bootinfo_memory_region *memory_regions;
-
 void *kernel_elf_location = NULL;
 void *kernel_elf_end = NULL;
 
@@ -38,8 +35,6 @@ kickstart_main(uint32_t addr, uint32_t magic)
 	serial_printf("First free page after Kickstart: 0x%x%x\n",
 		      (uint32_t)(free_start_addr >> 32),
 		      (uint32_t)(free_start_addr & 0xFFFFFFFF));
-
-	memory_regions = (struct sampo_bootinfo_memory_region *)(uintptr_t) free_start_addr;
 
 	bool found_kernel = false;
 
@@ -148,8 +143,6 @@ kickstart_main(uint32_t addr, uint32_t magic)
 	pmm_reserve_memory_region((uintptr_t)kickstart_start, (uintptr_t)kickstart_end);
 	// Also reserve the kernel ELF module region.
 	pmm_reserve_memory_region((uintptr_t)kernel_elf_location, (uintptr_t)kernel_elf_end);
-	// And reserve the PMM's memory map structure.
-	pmm_reserve_memory_region((uintptr_t)memory_regions, ((uintptr_t)memory_regions) + 0x2000);
 
 	if (!elf_initialize(kernel_elf_location))
 	{
