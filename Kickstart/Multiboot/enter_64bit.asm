@@ -8,9 +8,10 @@ section .text
 global enter_64bit_kernel:function
 enter_64bit_kernel:
 	; Now we need to first set the long-mode big in the EFER MSR
-	mov ecx, 0xC0000008
+	mov ecx, 0xC0000080
 	rdmsr
 	or eax, 1 << 8 		; Set the actual bit.
+	or eax, 1 << 11		; Also set NXE bit.
 	wrmsr			; And write it
 
 	; We must also enable PAE
@@ -21,7 +22,6 @@ enter_64bit_kernel:
 	; Let's now enable paging with our page table.
 	; First set our page table as the one being used.
 	mov eax, DWORD [top_page_structure]
-	mov eax, DWORD [eax]
 	mov cr3, eax
 
 	xchg bx, bx
@@ -40,7 +40,7 @@ enter_64bit_kernel:
 JumpToKernel:
 	; We are now in 64-bit mode!
 	; Let's jump to the actual kernel image!
-	mov rcx, QWORD [program_entry_point]
+	lea rcx, [program_entry_point]
 	jmp [rcx]
 
 [BITS 32]
