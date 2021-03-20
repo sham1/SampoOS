@@ -293,13 +293,15 @@ elf_expand(void)
 				needs_rounding = true;
 			}
 
-			pages_needed = (size_t)(mem_len >> 12) + needs_rounding ? 1 : 0;
+			pages_needed = ((size_t)(mem_len / 0x1000)) + (needs_rounding ? 1 : 0);
 			void *segment_region = pmm_allocate_region(pages_needed);
 			if (segment_region == NULL)
 			{
 				serial_write("Couldn't allocate segment!\n");
 				return false;
 			}
+
+			serial_printf("Pages needed: %u\n", (uint32_t)pages_needed);
 
 			memset(segment_region, 0, pages_needed * 0x1000);
 

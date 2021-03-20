@@ -64,11 +64,19 @@ map_page(uint64_t phys_addr, uint64_t virt_addr, enum page_perm perm_flags)
 		size_t pdp_idx = (virt_addr >> 30) & 0x1FF;
 		size_t pml4_idx = (virt_addr >> 39) & 0x1FF;
 
+		serial_printf("PML4 index: %u\n", (uint32_t)pml4_idx);
+		serial_printf("PDP index: %u\n", (uint32_t)pdp_idx);
+		serial_printf("PD index: %u\n", (uint32_t)pd_idx);
+		serial_printf("PT index: %u\n", (uint32_t)pt_idx);
+
 		void *entry_ptr = (void *)(((uintptr_t)top_page_structure) + 0x08 * pml4_idx);
 		uint64_t pml4e;
 		memcpy(&pml4e, entry_ptr, sizeof(pml4e));
 
 		void *pdp_addr;
+		serial_printf("PML4E: 0x%x%x\n",
+			      (uint32_t)(pml4e >> 32),
+			      (uint32_t)(pml4e & 0xFFFFFFFF));
 		if (pml4e == 0)
 		{
 			// This page structure has not been allocated yet. Do that and move on recursively.
@@ -79,13 +87,15 @@ map_page(uint64_t phys_addr, uint64_t virt_addr, enum page_perm perm_flags)
 		}
 		else
 		{
-			pdp_addr = (void *)(uintptr_t)(pml4e & (~0x0FFF));
+			pdp_addr = (void *)(((uintptr_t)pml4e) & (~0x0FFF));
 		}
 
 		entry_ptr = (void *)(((uintptr_t)pdp_addr) + 0x08 * pdp_idx);
 		uint64_t pdpe;
 		memcpy(&pdpe, entry_ptr, sizeof(pdpe));
-
+		serial_printf("PDPE: 0x%x%x\n",
+			      (uint32_t)(pdpe >> 32),
+			      (uint32_t)(pdpe & 0xFFFFFFFF));
 		void *pd_addr;
 		if (pdpe == 0)
 		{
@@ -97,12 +107,15 @@ map_page(uint64_t phys_addr, uint64_t virt_addr, enum page_perm perm_flags)
 		}
 		else
 		{
-			pd_addr = (void *)(uintptr_t)(pdpe & (~0x0FFF));
+			pd_addr = (void *)(((uintptr_t)pdpe) & (~0x0FFF));
 		}
 
 		entry_ptr = (void *)(((uintptr_t)pd_addr) + 0x08 * pd_idx);
 		uint64_t pde;
 		memcpy(&pde, entry_ptr, sizeof(pde));
+		serial_printf("PDE: 0x%x%x\n",
+			      (uint32_t)(pde >> 32),
+			      (uint32_t)(pde & 0xFFFFFFFF));
 
 		void *pt_addr;
 		if (pde == 0)
@@ -115,12 +128,16 @@ map_page(uint64_t phys_addr, uint64_t virt_addr, enum page_perm perm_flags)
 		}
 		else
 		{
-			pt_addr = (void *)(uintptr_t)(pde & (~0x0FFF));
+			pt_addr = (void *)(((uintptr_t)pde) & (~0x0FFF));
 		}
 
 		entry_ptr = (void *)(((uintptr_t)pt_addr) + 0x08 * pt_idx);
 		uint64_t pte;
 		memcpy(&pte, entry_ptr, sizeof(pte));
+
+		serial_printf("PTE: 0x%x%x\n",
+			      (uint32_t)(pte >> 32),
+			      (uint32_t)(pte & 0xFFFFFFFF));
 
 		if (pte != 0)
 		{
