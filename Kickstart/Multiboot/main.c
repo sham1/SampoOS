@@ -5,6 +5,7 @@
 #include "serial.h"
 #include "elf.h"
 #include "pmm.h"
+#include <cpuid.h>
 
 extern uint8_t kickstart_start[];
 extern uint8_t kickstart_end[];
@@ -14,6 +15,8 @@ extern struct sampo_bootinfo_memory_region *memory_regions;
 
 void *kernel_elf_location = NULL;
 void *kernel_elf_end = NULL;
+
+static bool has_longmode(void);
 
 void
 kickstart_main(uint32_t addr, uint32_t magic)
@@ -169,5 +172,26 @@ kickstart_main(uint32_t addr, uint32_t magic)
 
 	serial_write("Kernel ELF successfully parsed!\n");
 
+	if (elf_get_arch() == ELF_ARCH_AMD64)
+	{
+		if (!has_longmode())
+		{
+			serial_write("Cannot boot AMD64 version of SampoOS on a non-AMD64 machine! Halting!\n");
+			return;
+		}
+	}
+
 	// TODO: Parse multiboot headers.
+}
+
+static bool
+has_longmode(void)
+{
+	unsigned int unused, edx;
+	if (__get_cpuid(0x80000001, &unused, &unused, &unused, &edx) == 0x0)
+	{
+		return false;
+	}
+
+	return (edx & bit_LM) != 0;
 }
