@@ -11,7 +11,8 @@ OBJS =\
 	string.o \
 	serial.o \
 	pmm.o \
-	elf.o
+	elf.o \
+	pager.o
 
 all: kickstart.bin
 
@@ -21,6 +22,7 @@ kickstart.bin: crti.o crtbegin.o $(OBJS) crtend.o crtn.o
 string.o: string.c string.h
 serial.o: serial.c serial.h
 elf.o: elf.c elf.h
+pager.o: pager.c pager.h
 
 crtbegin.o:
 	cp `$(CC) $(CFLAGS) -print-file-name=crtbegin.o` .

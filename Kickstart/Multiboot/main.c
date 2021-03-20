@@ -5,6 +5,7 @@
 #include "serial.h"
 #include "elf.h"
 #include "pmm.h"
+#include "pager.h"
 #include <cpuid.h>
 
 extern uint8_t kickstart_start[];
@@ -150,20 +151,6 @@ kickstart_main(uint32_t addr, uint32_t magic)
 	// And reserve the PMM's memory map structure.
 	pmm_reserve_memory_region((uintptr_t)memory_regions, ((uintptr_t)memory_regions) + 0x2000);
 
-	serial_printf("Parsed memory map (rounded to nearest page boundaries):\n");
-	for (size_t i = 0; i < memory_region_count; ++i)
-	{
-		serial_printf("\tRegion start - 0x%x%x\n",
-			      (uint32_t)(memory_regions[i].addr_start >> 32),
-			      (uint32_t)(memory_regions[i].addr_start & 0xFFFFFFFF));
-		serial_printf("\tRegion end   - 0x%x%x\n",
-			      (uint32_t)(memory_regions[i].addr_end >> 32),
-			      (uint32_t)(memory_regions[i].addr_end & 0xFFFFFFFF));
-		serial_printf("\tRegion type  - %d\n",
-			      memory_regions[i].type);
-		serial_putchar('\n');
-	}
-
 	if (!elf_initialize(kernel_elf_location))
 	{
 		serial_write("Failed to parse the kernel! Halting!\n");
@@ -179,6 +166,26 @@ kickstart_main(uint32_t addr, uint32_t magic)
 			serial_write("Cannot boot AMD64 version of SampoOS on a non-AMD64 machine! Halting!\n");
 			return;
 		}
+	}
+
+	if (!initialize_pager(elf_get_arch() == ELF_ARCH_AMD64 ? PAGE_TYPE_64BIT : PAGE_TYPE_32BIT))
+	{
+		serial_write("Could not setup page mapping! Halting!\n");
+		return;
+	}
+
+	serial_printf("Parsed memory map (rounded to nearest page boundaries):\n");
+	for (size_t i = 0; i < memory_region_count; ++i)
+	{
+		serial_printf("\tRegion start - 0x%x%x\n",
+			      (uint32_t)(memory_regions[i].addr_start >> 32),
+			      (uint32_t)(memory_regions[i].addr_start & 0xFFFFFFFF));
+		serial_printf("\tRegion end   - 0x%x%x\n",
+			      (uint32_t)(memory_regions[i].addr_end >> 32),
+			      (uint32_t)(memory_regions[i].addr_end & 0xFFFFFFFF));
+		serial_printf("\tRegion type  - %d\n",
+			      memory_regions[i].type);
+		serial_putchar('\n');
 	}
 
 	// TODO: Parse multiboot headers.
