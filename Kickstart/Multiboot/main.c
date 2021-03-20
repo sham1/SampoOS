@@ -3,7 +3,7 @@
 #include "util.h"
 #include "string.h"
 #include "serial.h"
-
+#include "elf.h"
 #include "pmm.h"
 
 extern uint8_t kickstart_start[];
@@ -160,6 +160,14 @@ kickstart_main(uint32_t addr, uint32_t magic)
 			      memory_regions[i].type);
 		serial_putchar('\n');
 	}
+
+	if (!elf_initialize(kernel_elf_location))
+	{
+		serial_write("Failed to parse the kernel! Halting!\n");
+		return;
+	}
+
+	serial_write("Kernel ELF successfully parsed!\n");
 
 	// TODO: Parse multiboot headers.
 }
