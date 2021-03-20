@@ -6,8 +6,6 @@
 void *top_page_structure;
 static enum page_type page_type;
 
-
-
 bool
 initialize_pager(enum page_type type)
 {

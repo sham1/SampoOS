@@ -13,9 +13,15 @@ enter_64bit_kernel:
 	or eax, 1 << 8 		; Set the actual bit.
 	wrmsr			; And write it
 
+	; We must also enable PAE
+	mov eax, cr4
+	or eax, 1 << 5
+	mov cr4, eax
+
 	; Let's now enable paging with our page table.
 	; First set our page table as the one being used.
 	mov eax, DWORD [top_page_structure]
+	mov eax, DWORD [eax]
 	mov cr3, eax
 
 	xchg bx, bx
