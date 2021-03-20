@@ -39,10 +39,9 @@ enter_64bit_kernel:
 [BITS 64]
 JumpToKernel:
 	; We are now in 64-bit mode!
-	cli
-.hang:
-	hlt
-	jmp .hang
+	; Let's jump to the actual kernel image!
+	mov rcx, QWORD [program_entry_point]
+	jmp [rcx]
 
 [BITS 32]
 section .data
