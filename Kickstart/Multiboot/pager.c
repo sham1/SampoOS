@@ -151,3 +151,9 @@ map_page(uint64_t phys_addr, uint64_t virt_addr, enum page_perm perm_flags)
 		memcpy(entry_ptr, &pte, sizeof(pte));
 	}
 }
+
+void
+pager_fill_bootinfo(struct sampo_bootinfo *info)
+{
+	info->bootstrap_paging_structure_ptr = (uintptr_t) top_page_structure;
+}

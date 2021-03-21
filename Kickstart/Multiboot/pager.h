@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <SampoOS/Kernel/bootinfo.h>
 
 enum page_type
 {
@@ -19,3 +20,5 @@ enum page_perm
 bool initialize_pager(enum page_type type);
 
 void map_page(uint64_t phys_addr, uint64_t virt_addr, enum page_perm perm_flags);
+
+void pager_fill_bootinfo(struct sampo_bootinfo *info);

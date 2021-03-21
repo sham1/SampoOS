@@ -317,3 +317,10 @@ pmm_sort_regions(void)
 
 	memory_region_count -= invalid_count;
 }
+
+void
+pmm_fill_bootinfo(struct sampo_bootinfo *info)
+{
+	info->memory_map.memory_regions_ptr = (uintptr_t) memory_regions;
+	info->memory_map.memory_regions_count = memory_region_count;
+}

@@ -16,3 +16,5 @@ void *pmm_allocate_region_with_type(size_t region_page_count,
 				    enum sampo_bootinfo_memory_region_type type);
 
 void pmm_deallocate(void *addr);
+
+void pmm_fill_bootinfo(struct sampo_bootinfo *info);

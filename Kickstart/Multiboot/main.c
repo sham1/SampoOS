@@ -20,6 +20,8 @@ uint64_t program_entry_point;
 
 static bool has_longmode(void);
 
+struct sampo_bootinfo bootinfo;
+
 void
 kickstart_main(uint32_t addr, uint32_t magic)
 {
@@ -190,6 +192,9 @@ kickstart_main(uint32_t addr, uint32_t magic)
 			      memory_regions[i].type);
 		serial_putchar('\n');
 	}
+
+	pmm_fill_bootinfo(&bootinfo);
+	pager_fill_bootinfo(&bootinfo);
 
 	if (elf_get_arch() == ELF_ARCH_AMD64)
 	{

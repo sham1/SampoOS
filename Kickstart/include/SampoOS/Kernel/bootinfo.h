@@ -20,3 +20,14 @@ struct sampo_bootinfo_memory_region
 	uint64_t addr_end;
 	enum sampo_bootinfo_memory_region_type type;
 };
+
+struct sampo_bootinfo
+{
+	struct
+	{
+		uint64_t memory_regions_ptr;
+		uint64_t memory_regions_count;
+	} memory_map;
+
+	uint64_t bootstrap_paging_structure_ptr;
+};

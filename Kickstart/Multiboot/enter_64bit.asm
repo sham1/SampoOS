@@ -1,6 +1,7 @@
 section .bss
 extern program_entry_point:data
 extern top_page_structure:data
+extern bootinfo:data
 
 [BITS 32]
 section .text
@@ -39,6 +40,9 @@ enter_64bit_kernel:
 [BITS 64]
 JumpToKernel:
 	; We are now in 64-bit mode!
+	; We need to pass the boot information to the kernel proper.
+	lea rax, [bootinfo]
+
 	; Let's jump to the actual kernel image!
 	lea rcx, [program_entry_point]
 	jmp [rcx]
