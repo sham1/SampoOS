@@ -98,7 +98,7 @@ pmm_reserve_memory_region(uintptr_t start, uintptr_t end)
 	struct sampo_bootinfo_memory_region *new_region = &memory_regions[memory_region_count];
 	new_region->addr_start = (uint64_t)start;
 	new_region->addr_end = (uint64_t)end;
-        new_region->type = SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RESERVED;
+        new_region->type = SAMPO_BOOTINFO_MEMORY_REGION_TYPE_ALLOCATED;
 
 	++memory_region_count;
 
@@ -137,6 +137,14 @@ pmm_reserve_memory_region(uintptr_t start, uintptr_t end)
 void *
 pmm_allocate_region(size_t region_page_count)
 {
+	return pmm_allocate_region_with_type(region_page_count,
+					     SAMPO_BOOTINFO_MEMORY_REGION_TYPE_ALLOCATED);
+}
+
+void *
+pmm_allocate_region_with_type(size_t region_page_count,
+			      enum sampo_bootinfo_memory_region_type type)
+{
 	if (region_page_count == 0)
 	{
 		return NULL;
@@ -169,7 +177,7 @@ pmm_allocate_region(size_t region_page_count)
 		// We have our region. Create the appropriate reserved region.
 		memory_regions[memory_region_count].addr_start = potential_region->addr_start;
 		memory_regions[memory_region_count].addr_end = potential_end;
-		memory_regions[memory_region_count].type = SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RESERVED;
+		memory_regions[memory_region_count].type = type;
 
 		++memory_region_count;
 

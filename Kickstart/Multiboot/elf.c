@@ -294,7 +294,9 @@ elf_expand(void)
 			}
 
 			pages_needed = ((size_t)(mem_len / 0x1000)) + (needs_rounding ? 1 : 0);
-			void *segment_region = pmm_allocate_region(pages_needed);
+			void *segment_region =
+			  pmm_allocate_region_with_type(pages_needed,
+							SAMPO_BOOTINFO_MEMORY_REGION_TYPE_KERNEL);
 			if (segment_region == NULL)
 			{
 				serial_write("Couldn't allocate segment!\n");

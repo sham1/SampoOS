@@ -12,5 +12,7 @@ void pmm_add_region(enum sampo_bootinfo_memory_region_type region_type,
 void pmm_reserve_memory_region(uintptr_t start, uintptr_t end);
 
 void *pmm_allocate_region(size_t region_page_count);
+void *pmm_allocate_region_with_type(size_t region_page_count,
+				    enum sampo_bootinfo_memory_region_type type);
 
 void pmm_deallocate(void *addr);
