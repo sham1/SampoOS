@@ -1,22 +1,38 @@
 ARCHDIR = Arch/$(ARCH)
 
 CC = $(ARCH)-elf-gcc
-CFLAGS = -ffreestanding -Wall -Wextra -std=gnu11 -O2 $(ARCH_CFLAGS)
+CFLAGS = -ffreestanding -Wall -Wextra -std=gnu11 -O2 -g $(ARCH_CFLAGS)
 LDFLAGS = -nostdlib -T $(ARCHDIR)/linker.ld $(ARCH_LDFLAGS)
 LIBS = -lgcc
+NASM = nasm
+NASMFLAGS = $(ARCH_NASMFLAGS)
+
+include $(ARCHDIR)/make.config
 
 OBJS =\
-	main.o
+	$(ARCHDIR)/crti.o \
+	$(ARCHDIR)/crtbegin.o \
+	main.o \
+	$(ARCH_OBJS) \
+	$(ARCHDIR)/crtend.o \
+	$(ARCHDIR)/crtn.o \
 
-sampo-$(ARCH).bin: $(ARCHDIR)/karch.a $(OBJS)
+sampo-$(ARCH).bin: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(ARCHDIR)/karch.a:
-	make -C $(ARCHDIR) karch.a
+clean:
+	rm -f *.o sampo-$(ARCH).bin $(ARCHDIR)/*.o
+
+.SUFFIXES: .c .asm .o
 
 .c.o:
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-clean:
-	rm -f *.o sampo-$(ARCH).bin
-	make -C $(ARCHDIR) clean
+.asm.o:
+	$(NASM) $(NASMFLAGS) $< -o $@
+
+$(ARCHDIR)/crtbegin.o:
+	cp `$(CC) $(CFLAGS) -print-file-name=crtbegin.o` $(ARCHDIR)
+
+$(ARCHDIR)/crtend.o:
+	cp `$(CC) $(CFLAGS) -print-file-name=crtend.o` $(ARCHDIR)
