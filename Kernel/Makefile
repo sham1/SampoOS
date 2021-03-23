@@ -1,7 +1,7 @@
 ARCHDIR = Arch/$(ARCH)
 
 CC = $(ARCH)-elf-gcc
-CFLAGS = -ffreestanding -Wall -Wextra -std=gnu11 -O2 -g $(ARCH_CFLAGS)
+CFLAGS = -ffreestanding -Wall -Wextra -std=gnu11 -O2 -g -I../Kickstart/include $(ARCH_CFLAGS)
 LDFLAGS = -nostdlib -T $(ARCHDIR)/linker.ld $(ARCH_LDFLAGS)
 LIBS = -lgcc
 NASM = nasm
