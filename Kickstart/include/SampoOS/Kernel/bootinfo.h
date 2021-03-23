@@ -18,7 +18,7 @@ struct sampo_bootinfo_memory_region
 {
 	uint64_t addr_start;
 	uint64_t addr_end;
-	enum sampo_bootinfo_memory_region_type type;
+	uint64_t type;
 };
 
 struct sampo_bootinfo
