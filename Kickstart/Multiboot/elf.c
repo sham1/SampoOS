@@ -303,13 +303,16 @@ elf_expand(void)
 				return false;
 			}
 
+			serial_printf("Kernel segment is to be mapped to physical page 0x%x\n",
+				      (uint32_t)(uintptr_t)(segment_region));
+
 			serial_printf("Pages needed: %u\n", (uint32_t)pages_needed);
 
 			memset(segment_region, 0, pages_needed * 0x1000);
 
 			for (size_t i = 0; i < pages_needed; ++i)
 			{
-				map_page((uintptr_t)segment_region, vaddr + i * 0x1000, segment_perms);
+				map_page((uintptr_t)segment_region + i * 0x1000, vaddr + i * 0x1000, segment_perms);
 			}
 
 			void *file_segment = (void *)(uintptr_t)((uint64_t)(uintptr_t)header.base_ptr + f_off);

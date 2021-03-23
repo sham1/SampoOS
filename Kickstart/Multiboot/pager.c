@@ -145,7 +145,7 @@ map_page(uint64_t phys_addr, uint64_t virt_addr, enum page_perm perm_flags)
 		if ((perm_flags & PAGE_PERM_EXEC) == 0)
 		{
 			// Sets the NX flag.
-			pte |= 0x80000000;
+			pte |= (UINT64_C(1) << 63);
 		}
 
 		memcpy(entry_ptr, &pte, sizeof(pte));
