@@ -6,6 +6,8 @@ SECTIONS
 	/* It gets placed there by Kickstart, therefore we can just link directly here */
 	. = 0xFFFFFFFF80000000;
 
+	kern_begin = .;
+
 	/* Put the kernel sections like they should be */
 	.text BLOCK(4K) : ALIGN(4K)
 	{
@@ -27,4 +29,6 @@ SECTIONS
 		*(COMMON)
 		*(.bss)
 	}
+
+	kern_end = .;
 }

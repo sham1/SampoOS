@@ -1,11 +1,13 @@
 ARCHDIR = Arch/$(ARCH)
 
 CC = $(ARCH)-elf-gcc
-CFLAGS = -ffreestanding -Wall -Wextra -std=gnu11 -O2 -g -I../Kickstart/include $(ARCH_CFLAGS)
+CFLAGS = -ffreestanding -Wall -Wextra -std=gnu11 -O2 -g -I../Kickstart/include -Iinclude $(ARCH_CFLAGS)
 LDFLAGS = -nostdlib -T $(ARCHDIR)/linker.ld $(ARCH_LDFLAGS)
 LIBS = -lgcc
 NASM = nasm
 NASMFLAGS = $(ARCH_NASMFLAGS)
+
+all: sampo-$(ARCH).bin
 
 include $(ARCHDIR)/make.config
 
