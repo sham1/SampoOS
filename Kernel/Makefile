@@ -15,6 +15,7 @@ OBJS =\
 	$(ARCHDIR)/crti.o \
 	$(ARCHDIR)/crtbegin.o \
 	main.o \
+	string.o \
 	$(ARCH_OBJS) \
 	$(ARCHDIR)/crtend.o \
 	$(ARCHDIR)/crtn.o \
