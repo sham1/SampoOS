@@ -3,6 +3,7 @@
 #include <SampoOS/Kernel/bootinfo.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 enum physmem_region_type
 {
@@ -13,24 +14,23 @@ enum physmem_region_type
 	PHYSMEM_REGION_TYPE_BAD_MEM,
 };
 
-// Used for the implementation of the red-black tree.
-enum physmem_region_color
-{
-	PHYSMEM_REGION_COLOR_BLACK,
-	PHYSMEM_REGION_COLOR_RED,
-};
-
-// Physical memory regions are stored as nodes in a red-black tree.
 struct physmem_region
 {
 	uintptr_t addr; // <- Page granuality.
 	size_t len; // <- Multiples of PAGE_SIZE.
 
 	uint8_t *alloc_map; // Bitmap describing allocated and free regions.
-
-	struct physmem_region *left_child;
-	struct physmem_region *right_child;
-
-	enum physmem_region_type type;
-	enum physmem_region_color color;
 };
+
+void init_memory_manager(struct sampo_bootinfo *bootinfo);
+
+enum virt_map_perm
+{
+	VIRT_MAP_READ = (1 << 0),
+	VIRT_MAP_WRITE = (1 << 1),
+	VIRT_MAP_EXEC = (1 << 2),
+};
+
+void *virt_map_pages_kernel_end(uintptr_t physical_page_addr,
+				size_t page_count,
+				enum virt_map_perm mapping_perms);
