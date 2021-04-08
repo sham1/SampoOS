@@ -1,4 +1,5 @@
 #include <SampoOS/Kernel/memman.h>
+#include <string.h>
 #include "memory-manager.h"
 
 const size_t PAGE_SIZE = 0x1000;
@@ -199,7 +200,99 @@ init_memory_manager(struct sampo_bootinfo *bootinfo)
 							   phys_manager_page_count,
 							   VIRT_MAP_READ | VIRT_MAP_WRITE);
 
-	// TODO: Add entries properly
+	// Clear the areas we just received.
+	memset(phys_manager_ptr, 0, phys_manager_page_count * PAGE_SIZE);
+
+        uint8_t *bitmap_addr = phys_manager_ptr;
+        physmap = (void *)((uintptr_t) phys_manager_ptr + bitmap_page_count * PAGE_SIZE);
+
+	// Now we need to populate the physmap
+	for (size_t i = 0; i < bootinfo->memory_map.memory_regions_count; ++i)
+	{
+		struct sampo_bootinfo_memory_region *region = &bootinfo_memory_regions[i];
+
+		size_t region_end = region->addr_end;
+		uint8_t *bitmap = NULL;
+		// First we check if this region is either AVAILABLE or ALLOCATED.
+		if ((region->type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_AVAILABLE) ||
+		    (region->type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_ALLOCATED))
+		{
+			for (size_t j = i + 1;
+			     j < bootinfo->memory_map.memory_regions_count;
+			     ++j)
+			{
+				struct sampo_bootinfo_memory_region *peek_region =
+					&bootinfo_memory_regions[j];
+				// If the regions are combinable, try combining.
+				// If not, we've reached the end of the combined region.
+				if ((peek_region->type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_AVAILABLE) ||
+				    (peek_region->type == SAMPO_BOOTINFO_MEMORY_REGION_TYPE_ALLOCATED))
+				{
+					// Combinable regions must be adjacent
+					// (the previous one must end at the start of the next one.)
+					if (peek_region->addr_start == region_end)
+					{
+						region_end = peek_region->addr_end;
+						++i;
+					}
+					else
+					{
+						break;
+					}
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			// Get the length of this region and round it to a page boundary, so we know
+			// how many pages in total this has used.
+			size_t combined_region_size = region_end - region->addr_start;
+			combined_region_size = (combined_region_size + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1);
+
+			size_t combined_page_count = combined_region_size / PAGE_SIZE;
+
+			size_t bitmap_required_bytes = combined_page_count / 8;
+		        bitmap_required_bytes += ((combined_page_count % 8) != 0) ? 1 : 0;
+
+			bitmap = bitmap_addr;
+
+			bitmap_addr += bitmap_required_bytes;
+		}
+
+		physmap[physmem_len].addr      = region->addr_start;
+		physmap[physmem_len].len       = region_end - region->addr_start;
+		physmap[physmem_len].alloc_map = bitmap;
+
+		enum physmem_region_type type;
+
+		switch (region->type)
+		{
+		case SAMPO_BOOTINFO_MEMORY_REGION_TYPE_AVAILABLE:
+		case SAMPO_BOOTINFO_MEMORY_REGION_TYPE_ALLOCATED:
+			type = PHYSMEM_REGION_TYPE_AVAILABLE;
+			break;
+		case SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RECLAIMABLE:
+			type = PHYSMEM_REGION_TYPE_ACPI_RECLAIM;
+			break;
+		case SAMPO_BOOTINFO_MEMORY_REGION_TYPE_NVS:
+			type = PHYSMEM_REGION_TYPE_NVS;
+			break;
+		case SAMPO_BOOTINFO_MEMORY_REGION_TYPE_BAD_MEM:
+			type = PHYSMEM_REGION_TYPE_BAD_MEM;
+			break;
+		case SAMPO_BOOTINFO_MEMORY_REGION_TYPE_KERNEL:
+		case SAMPO_BOOTINFO_MEMORY_REGION_TYPE_RESERVED:
+		default:
+			type = PHYSMEM_REGION_TYPE_RESERVED;
+			break;
+		}
+
+		physmap[physmem_len].type = type;
+
+		++physmem_len;
+	}
 }
 
 void *

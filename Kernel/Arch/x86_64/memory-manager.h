@@ -20,6 +20,8 @@ struct physmem_region
 	size_t len; // <- Multiples of PAGE_SIZE.
 
 	uint8_t *alloc_map; // Bitmap describing allocated and free regions.
+
+	enum physmem_region_type type;
 };
 
 void init_memory_manager(struct sampo_bootinfo *bootinfo);
