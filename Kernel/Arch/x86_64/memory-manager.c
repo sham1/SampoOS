@@ -67,6 +67,9 @@ invalidate_page(void *p)
 	asm volatile("invlpg (%0)" : : "b"(p) : "memory");
 }
 
+static void pmm_mark_page_busy(uintptr_t page);
+static void pmm_free_page(uintptr_t page);
+
 void
 init_memory_manager(struct sampo_bootinfo *bootinfo)
 {
@@ -83,6 +86,9 @@ init_memory_manager(struct sampo_bootinfo *bootinfo)
 	// Now we must calculate how many "combined" memory regions there are.
 	// This means that any adjacent SAMPO_BOOTINFO_MEMORY_REGION_TYPE_AVAILABLE
 	// and SAMPO_BOOTINFO_MEMORY_REGION_TYPE_ALLOCATED are counted as "one region".
+	//
+	// TODO: Should potential ACPI reclaimable regions also be combined with AVAILABLE
+	// and just be marked as used until they are reclaimable?
 	size_t combined_region_count = 0;
 
 	// We can also count how many bits we need for a bitmap
@@ -292,6 +298,91 @@ init_memory_manager(struct sampo_bootinfo *bootinfo)
 		physmap[physmem_len].type = type;
 
 		++physmem_len;
+	}
+
+	// One last iteration of the bootinfo memory map for now.
+	// We must mark all ALLOCATED regions as used in the bitmap.
+	//
+	// This helps us allocate actually unused memory regions for stuff.
+	for (size_t i = 0; i < bootinfo->memory_map.memory_regions_count; ++i)
+	{
+		struct sampo_bootinfo_memory_region *region = &bootinfo_memory_regions[i];
+		if (region->type != SAMPO_BOOTINFO_MEMORY_REGION_TYPE_ALLOCATED)
+		{
+			continue;
+		}
+
+		for (uintptr_t page = region->addr_start; page < region->addr_end; page += PAGE_SIZE)
+		{
+			pmm_mark_page_busy(page);
+		}
+	}
+
+	// Let's also mark the physical pages containing the physmap and the bitmap, since
+	// those are important enough not to trample with.
+	for (uintptr_t page = phys_manager_addr;
+	     page < phys_manager_addr + phys_manager_page_count * PAGE_SIZE;
+	     page += PAGE_SIZE)
+	{
+		pmm_mark_page_busy(page);
+	}
+}
+
+static void
+pmm_mark_page_busy(uintptr_t page)
+{
+	for (size_t i = 0; i < physmem_len; ++i)
+	{
+		struct physmem_region *region = &physmap[i];
+		if (page < region->addr)
+		{
+			continue;
+		}
+
+		if (region->type != PHYSMEM_REGION_TYPE_AVAILABLE)
+		{
+			// TODO: Log this error!
+			return;
+		}
+
+		uintptr_t offset = page - region->addr;
+		size_t page_idx = offset / PAGE_SIZE;
+
+		size_t bitmap_byte_idx = page_idx / 8;
+		size_t bitmap_bit_idx = page_idx % 8;
+
+		region->alloc_map[bitmap_byte_idx] |= (1 << bitmap_bit_idx);
+
+		break;
+	}
+}
+
+static void
+pmm_free_page(uintptr_t page)
+{
+	for (size_t i = 0; i < physmem_len; ++i)
+	{
+		struct physmem_region *region = &physmap[i];
+		if (page < region->addr)
+		{
+			continue;
+		}
+
+		if (region->type != PHYSMEM_REGION_TYPE_AVAILABLE)
+		{
+			// TODO: Log this error!
+			return;
+		}
+
+		uintptr_t offset = page - region->addr;
+		size_t page_idx = offset / PAGE_SIZE;
+
+		size_t bitmap_byte_idx = page_idx / 8;
+		size_t bitmap_bit_idx = page_idx % 8;
+
+		region->alloc_map[bitmap_byte_idx] &= ~(1 << bitmap_bit_idx);
+
+		break;
 	}
 }
 
